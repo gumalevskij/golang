@@ -6,6 +6,7 @@ import (
     "fmt"
     "os"
     "strings"
+    "unicode"
 )
 
 func readStopWords(filename string) (map[string]bool, error) {
@@ -48,9 +49,10 @@ func main() {
 
     for _, word := range words {
 		word = strings.ToLower(word)
-		word = strings.Trim(word, ".,!?")
+		word = strings.TrimFunc(word, func(r rune) bool {
+            return !unicode.IsLetter(r) && !unicode.IsNumber(r)
+        })
 		stemmedWord := stemmer.Stem(word);
-		stemmedWord = strings.Trim(stemmedWord, "’")
 		if _, exists := uniqueWords[stemmedWord]; !stopWords[word] && !exists {
 			uniqueWords[stemmedWord] = true
 			result = append(result, stemmedWord)

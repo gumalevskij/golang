@@ -11,5 +11,8 @@ run:
 run2:
 	./$(BINARY_NAME) -s "follower brings bunch of questions"
 
+run3:
+	./$(BINARY_NAME) -s "Hannah's kitten"
+
 clean:
 	rm  -f $(BINARY_NAME)

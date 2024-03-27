@@ -53,6 +53,7 @@ func main() {
             return !unicode.IsLetter(r) && !unicode.IsNumber(r)
         })
 		stemmedWord := stemmer.Stem(word);
+        stemmedWord = strings.Trim(stemmedWord, "’")
 		if _, exists := uniqueWords[stemmedWord]; !stopWords[word] && !exists {
 			uniqueWords[stemmedWord] = true
 			result = append(result, stemmedWord)

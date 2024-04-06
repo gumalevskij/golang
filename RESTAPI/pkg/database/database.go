@@ -2,7 +2,7 @@ package database
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 )
 
 func SaveComics(path string, comics map[string]interface{}) error {
@@ -11,5 +11,5 @@ func SaveComics(path string, comics map[string]interface{}) error {
 		return err
 	}
 
-	return ioutil.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0644)
 }

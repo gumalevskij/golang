@@ -33,9 +33,10 @@ func NormalizeComicsNew(stopWordsFile string, comics []xkcd.Comic) (map[string]i
 func main() {
 	outputFlag := flag.Bool("o", false, "Output to screen")
 	limitFlag := flag.Int("n", -1, "Number of comics to fetch")
+	configPath := flag.String("c", "config.yaml", "Path to the configuration file")
 	flag.Parse()
 
-	config, err := xkcd.LoadConfig("config.yaml")
+	config, err := xkcd.LoadConfig(*configPath)
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}

@@ -5,7 +5,14 @@ import (
 	"os"
 )
 
-func SaveComics(path string, comics map[string]interface{}) error {
+type NormalizedComic struct {
+    Url       string   `json:"url"`
+    Keywords  []string `json:"keywords"`
+}
+
+type Comics map[string]NormalizedComic
+
+func SaveComics(path string, comics Comics) error {
 	data, err := json.MarshalIndent(comics, "", "  ")
 	if err != nil {
 		return err

@@ -32,21 +32,21 @@ func LoadConfig(path string) (*Config, error) {
 	return &config, nil
 }
 
-func NormalizeComicsNew(stopWordsFile string, comics []xkcd.Comic) (map[string]interface{}, error) {
+func NormalizeComics(stopWordsFile string, comics []xkcd.Comic) (database.Comics, error) {
 	stopWords, err := words.ReadStopWords(stopWordsFile)
 	if err != nil {
 		fmt.Println("Error reading stop words file:", err)
 		return nil, err
 	}
 
-	normComics := make(map[string]interface{})
+	normComics := make(database.Comics)
 	stemmer := words.NewStemmer()
 
 	for _, comic := range comics {
 		result := words.Normalize(stemmer, stopWords, comic.Transcript)
-		normComics[strconv.Itoa(comic.Num)] = map[string]interface{}{
-			"url":      comic.Img,
-			"keywords": result,
+		normComics[strconv.Itoa(comic.Num)] = database.NormalizedComic{
+			Url:      comic.Img,
+			Keywords: result,
 		}
 	}
 
@@ -69,7 +69,7 @@ func main() {
 		log.Fatalf("Failed to fetch comics: %v", err)
 	}
 
-	normComics, err := NormalizeComicsNew(config.StopWordsFile, comics)
+	normComics, err := NormalizeComics(config.StopWordsFile, comics)
 	if err != nil {
 		log.Fatalf("Failed to normalize comics: %v", err)
 	}

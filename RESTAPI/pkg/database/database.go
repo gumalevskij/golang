@@ -9,7 +9,7 @@ import (
 type Config struct {
 	SourceURL     string `yaml:"source_url"`
 	DbFile        string `yaml:"db_file"`
-	StopWordsFile string `yaml:"stopWords_file"`
+	StopWordsFile string `yaml:"stopwords_file"`
 }
 
 func LoadConfig(path string) (*Config, error) {

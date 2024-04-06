@@ -6,6 +6,7 @@ import (
 	"log"
 	"io/ioutil"
 	"gopkg.in/yaml.v2"
+	"strconv"
 	"xkcd-fetcher/pkg/database"
 	"xkcd-fetcher/pkg/words"
 	"xkcd-fetcher/pkg/xkcd"
@@ -43,7 +44,7 @@ func NormalizeComicsNew(stopWordsFile string, comics []xkcd.Comic) (map[string]i
 
 	for _, comic := range comics {
 		result := words.Normalize(stemmer, stopWords, comic.Transcript)
-		normComics[fmt.Sprint(comic.Num)] = map[string]interface{}{
+		normComics[strconv.Itoa(comic.Num)] = map[string]interface{}{
 			"url":      comic.Img,
 			"keywords": result,
 		}

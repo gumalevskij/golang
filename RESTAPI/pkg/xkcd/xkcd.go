@@ -4,17 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"xkcd-fetcher/pkg/database"
 )
 
 type Comic struct {
 	Num        int
 	Img        string
 	Transcript string
-}
-
-func LoadConfig(path string) (*database.Config, error) {
-	return database.LoadConfig(path)
 }
 
 func FetchComics(baseURL string, limit int) ([]Comic, error) {

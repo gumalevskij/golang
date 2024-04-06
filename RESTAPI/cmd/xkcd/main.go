@@ -4,10 +4,32 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"io/ioutil"
+	"gopkg.in/yaml.v2"
 	"xkcd-fetcher/pkg/database"
 	"xkcd-fetcher/pkg/words"
 	"xkcd-fetcher/pkg/xkcd"
 )
+
+type Config struct {
+	SourceURL     string `yaml:"source_url"`
+	DbFile        string `yaml:"db_file"`
+	StopWordsFile string `yaml:"stopwords_file"`
+}
+
+func LoadConfig(path string) (*Config, error) {
+	var config Config
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		return nil, err
+	}
+
+	return &config, nil
+}
 
 func NormalizeComicsNew(stopWordsFile string, comics []xkcd.Comic) (map[string]interface{}, error) {
 	stopWords, err := words.ReadStopWords(stopWordsFile)
@@ -36,7 +58,7 @@ func main() {
 	configPath := flag.String("c", "config.yaml", "Path to the configuration file")
 	flag.Parse()
 
-	config, err := xkcd.LoadConfig(*configPath)
+	config, err := LoadConfig(*configPath)
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}

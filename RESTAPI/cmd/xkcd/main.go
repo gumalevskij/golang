@@ -43,7 +43,8 @@ func NormalizeComics(stopWordsFile string, comics []xkcd.Comic) (database.Comics
 	stemmer := words.NewStemmer()
 
 	for _, comic := range comics {
-		result := words.Normalize(stemmer, stopWords, comic.Transcript)
+		fullText := comic.Transcript + " " + comic.Alt
+		result := words.Normalize(stemmer, stopWords, fullText)
 		normComics[strconv.Itoa(comic.Num)] = database.NormalizedComic{
 			Url:      comic.Img,
 			Keywords: result,

@@ -10,6 +10,7 @@ type Comic struct {
 	Num        int
 	Img        string
 	Transcript string
+	Alt        string
 }
 
 func getLastComic(baseURL string) (Comic, error) {

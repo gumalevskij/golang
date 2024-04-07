@@ -12,6 +12,26 @@ type NormalizedComic struct {
 
 type Comics map[string]NormalizedComic
 
+func LoadComics(path string) (Comics, error) {
+	var comics Comics
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return comics, nil
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(data, &comics)
+	if err != nil {
+		return nil, err
+	}
+
+	return comics, nil
+}
+
 func SaveComics(path string, comics Comics) error {
 	data, err := json.MarshalIndent(comics, "", "  ")
 	if err != nil {

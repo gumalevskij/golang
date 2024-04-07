@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
-	"io/ioutil"
 	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	"log"
 	"strconv"
 	"xkcd-fetcher/pkg/database"
 	"xkcd-fetcher/pkg/words"
@@ -32,7 +32,7 @@ func LoadConfig(path string) (*Config, error) {
 	return &config, nil
 }
 
-func NormalizeComics(stopWordsFile string, comics []xkcd.Comic, normComics *database.Comics) (error) {
+func NormalizeComics(stopWordsFile string, comics []xkcd.Comic, normComics *database.Comics) error {
 	stopWords, err := words.ReadStopWords(stopWordsFile)
 	if err != nil {
 		fmt.Println("Error reading stop words file:", err)
@@ -80,7 +80,7 @@ func main() {
 
 	var normComics database.Comics
 	var comics []xkcd.Comic
-	
+
 	normComics, err = database.LoadComics(config.DbFile)
 	if err != nil || len(normComics) == 0 {
 		comics, err = xkcd.FetchComics(config.SourceURL, 0, *limitFlag)
@@ -88,7 +88,7 @@ func main() {
 			log.Fatalf("Failed to fetch comics: %v", err)
 		}
 		normComics = make(database.Comics)
-    } else {
+	} else {
 		maxComicsNum, err := getMaxComicNum(normComics)
 		if err != nil {
 			log.Fatalf("Failed to find max comic number: %v", err)

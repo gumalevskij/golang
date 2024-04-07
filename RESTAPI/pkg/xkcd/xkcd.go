@@ -13,31 +13,31 @@ type Comic struct {
 	Alt        string
 }
 
-func GetLastComic(baseURL string) (Comic, error) {
-    url := fmt.Sprintf("%s/info.0.json", baseURL)
-    resp, err := http.Get(url)
-    if err != nil {
-        return Comic{}, err
-    }
-    defer resp.Body.Close()
+func getLastComic(baseURL string) (Comic, error) {
+	url := fmt.Sprintf("%s/info.0.json", baseURL)
+	resp, err := http.Get(url)
+	if err != nil {
+		return Comic{}, err
+	}
+	defer resp.Body.Close()
 
-    var comic Comic
-    if err := json.NewDecoder(resp.Body).Decode(&comic); err != nil {
-        return Comic{}, err
-    }
+	var comic Comic
+	if err := json.NewDecoder(resp.Body).Decode(&comic); err != nil {
+		return Comic{}, err
+	}
 
-    return comic, nil
+	return comic, nil
 }
 
 func FetchComics(baseURL string, existedComicsNumber int, limit int) ([]Comic, error) {
-	lastComic, err := GetLastComic(baseURL)
-    if err != nil {
-        return nil, err
-    }
+	lastComic, err := getLastComic(baseURL)
+	if err != nil {
+		return nil, err
+	}
 
 	if limit < 0 || limit > lastComic.Num {
-        limit = lastComic.Num
-    }
+		limit = lastComic.Num
+	}
 
 	var comics []Comic
 	for i := existedComicsNumber + 1; i <= limit; i++ {

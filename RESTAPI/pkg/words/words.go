@@ -2,8 +2,8 @@ package words
 
 import (
 	"bufio"
-	"strings"
 	"os"
+	"strings"
 	"unicode"
 )
 
@@ -37,7 +37,7 @@ func Normalize(stemmer Stemmer, stopWords map[string]bool, text string) []string
 		word = strings.TrimFunc(word, func(r rune) bool {
 			return !unicode.IsLetter(r) && !unicode.IsNumber(r)
 		})
-		
+
 		stemmedWord := stemmer.Stem(word)
 		stemmedWord = strings.Trim(stemmedWord, "’")
 		if _, exists := uniqueWords[stemmedWord]; !stopWords[word] && !exists {

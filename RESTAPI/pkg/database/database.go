@@ -6,8 +6,8 @@ import (
 )
 
 type NormalizedComic struct {
-    Url       string   `json:"url"`
-    Keywords  []string `json:"keywords"`
+	Url      string   `json:"url"`
+	Keywords []string `json:"keywords"`
 }
 
 type Comics map[string]NormalizedComic

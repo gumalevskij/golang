@@ -3,13 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
-	"gopkg.in/yaml.v2"
-	"io/ioutil"
 	"log"
+	"os"
 	"strconv"
 	"xkcd-fetcher/pkg/database"
 	"xkcd-fetcher/pkg/words"
 	"xkcd-fetcher/pkg/xkcd"
+
+	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
@@ -20,7 +21,7 @@ type Config struct {
 
 func LoadConfig(path string) (*Config, error) {
 	var config Config
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -32,11 +33,11 @@ func LoadConfig(path string) (*Config, error) {
 	return &config, nil
 }
 
-func NormalizeComics(stopWordsFile string, comics []xkcd.Comic, normComics *database.Comics) error {
+func NormalizeComics(stopWordsFile string, comics []xkcd.Comic, normComics database.Comics) (database.Comics, error) {
 	stopWords, err := words.ReadStopWords(stopWordsFile)
 	if err != nil {
 		fmt.Println("Error reading stop words file:", err)
-		return err
+		return normComics, err
 	}
 
 	stemmer := words.NewStemmer()
@@ -44,13 +45,13 @@ func NormalizeComics(stopWordsFile string, comics []xkcd.Comic, normComics *data
 	for _, comic := range comics {
 		fullText := comic.Transcript + " " + comic.Alt
 		result := words.Normalize(stemmer, stopWords, fullText)
-		(*normComics)[strconv.Itoa(comic.Num)] = database.NormalizedComic{
+		(normComics)[strconv.Itoa(comic.Num)] = database.NormalizedComic{
 			Url:      comic.Img,
 			Keywords: result,
 		}
 	}
 
-	return nil
+	return normComics, nil
 }
 
 func getMaxComicNum(comics database.Comics) (int, error) {
@@ -96,11 +97,7 @@ func main() {
 		}
 
 		if *limitFlag != -1 {
-			fmt.Println(*limitFlag)
 			*limitFlag = maxComicsNum + *limitFlag
-			fmt.Println(maxComicsNum)
-			fmt.Println(maxComicsNum + 1)
-			fmt.Println(*limitFlag)
 		}
 		comics, err = xkcd.FetchComics(config.SourceURL, maxComicsNum, *limitFlag)
 		if err != nil {
@@ -108,7 +105,7 @@ func main() {
 		}
 	}
 
-	err = NormalizeComics(config.StopWordsFile, comics, &normComics)
+	normComics, err = NormalizeComics(config.StopWordsFile, comics, normComics)
 	if err != nil {
 		log.Fatalf("Failed to normalize comics: %v", err)
 	}

@@ -39,7 +39,7 @@ func FetchComics(baseURL string, existedComicsNumber int, limit int) ([]Comic, e
 		limit = lastComic.Num
 	}
 
-	var comics []Comic
+	var comics = make([]Comic, limit-existedComicsNumber)
 	for i := existedComicsNumber + 1; i <= limit; i++ {
 		url := fmt.Sprintf("%s/%d/info.0.json", baseURL, i)
 		resp, err := http.Get(url)
@@ -58,6 +58,10 @@ func FetchComics(baseURL string, existedComicsNumber int, limit int) ([]Comic, e
 		}
 
 		comics = append(comics, comic)
+
+		if i%100 == 0 || i == limit {
+			fmt.Printf("\rFetched %d comics so far...", i-existedComicsNumber)
+		}
 	}
 
 	return comics, nil

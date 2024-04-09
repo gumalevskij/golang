@@ -6,10 +6,7 @@ build:
 	go build -o $(BINARY_NAME) ./cmd/$(BINARY_NAME)
 
 run: build
-	./$(BINARY_NAME) -o -n 10
-
-run1: build
-	./$(BINARY_NAME) -n 10
+	./$(BINARY_NAME)
 
 clean:
 	rm $(BINARY_NAME)

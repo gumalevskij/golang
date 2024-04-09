@@ -1,3 +1,4 @@
 source_url: "https://xkcd.com"
 db_file: "database.json"
 stopwords_file: "stopwords_English.txt"
+parallel: 128

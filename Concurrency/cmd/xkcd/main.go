@@ -4,7 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
 	"strconv"
+	"time"
 	"xkcd-fetcher/pkg/database"
 	"xkcd-fetcher/pkg/words"
 	"xkcd-fetcher/pkg/xkcd"
@@ -31,23 +34,8 @@ func NormalizeComics(stopWordsFile string, comics []xkcd.Comic, normComics datab
 	return normComics, nil
 }
 
-func getMaxComicNum(comics database.Comics) (int, error) {
-	maxNum := 0
-	for numStr := range comics {
-		num, err := strconv.Atoi(numStr)
-		if err != nil {
-			return 0, err
-		}
-		if num > maxNum {
-			maxNum = num
-		}
-	}
-	return maxNum, nil
-}
-
 func main() {
-	outputFlag := flag.Bool("o", false, "Output to screen")
-	limitFlag := flag.Int("n", -1, "Number of comics to fetch, -1 for all available")
+	start := time.Now()
 	configPath := flag.String("c", "config.yaml", "Path to the configuration file")
 	flag.Parse()
 
@@ -57,41 +45,69 @@ func main() {
 	}
 
 	var normComics database.Comics
-	var comics []xkcd.Comic
-
 	normComics, err = database.LoadComics(config.DbFile)
 	if err != nil || len(normComics) == 0 {
-		comics, err = xkcd.FetchComics(config.SourceURL, 0, *limitFlag)
-		if err != nil {
-			log.Fatalf("Failed to fetch comics: %v", err)
-		}
 		normComics = make(database.Comics)
-	} else {
-		maxComicsNum, err := getMaxComicNum(normComics)
-		if err != nil {
-			log.Fatalf("Failed to find max comic number: %v", err)
-			return
-		}
-
-		if *limitFlag != -1 {
-			*limitFlag = maxComicsNum + *limitFlag
-		}
-		comics, err = xkcd.FetchComics(config.SourceURL, maxComicsNum, *limitFlag)
-		if err != nil {
-			log.Fatalf("Failed to fetch comics: %v", err)
-		}
 	}
 
-	normComics, err = NormalizeComics(config.StopWordsFile, comics, normComics)
-	if err != nil {
-		log.Fatalf("Failed to normalize comics: %v", err)
-	}
-
-	if *outputFlag {
-		fmt.Println(normComics)
-	} else {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, os.Interrupt)
+	go func() {
+		<-sigs
 		if err := database.SaveComics(config.DbFile, normComics); err != nil {
-			log.Fatalf("Failed to save comics: %v", err)
+			log.Printf("Failed to save comics: %v", err)
+		}
+		os.Exit(0)
+	}()
+
+	low, high := 2917, 2917 // or 0 to 5000
+	numJobs, err := xkcd.GetLastComicBinary(config.SourceURL, low, high)
+
+	jobs := make(chan int, numJobs)
+	results := make(chan []xkcd.Comic, numJobs)
+	for w := 1; w <= config.Parallel; w++ {
+		go func() {
+			for j := range jobs {
+				comics, err := xkcd.FetchComics(config.SourceURL, j-1, j)
+				if err != nil {
+					log.Fatalf("Failed to fetch comics: %v", err)
+				}
+				results <- comics
+			}
+		}()
+	}
+
+	realCountJobs := 0
+	for j := 1; j <= numJobs; j++ {
+		if _, exists := normComics[strconv.Itoa(j)]; exists {
+			continue
+		}
+
+		realCountJobs++
+		jobs <- j
+	}
+	close(jobs)
+
+	var a int
+	for a = 1; a <= realCountJobs; a++ {
+		comics := <-results
+		normComics, err = NormalizeComics(config.StopWordsFile, comics, normComics)
+		if err != nil {
+			log.Fatalf("Failed to normalize comics: %v", err)
+		}
+
+		if a%10 == 0 {
+			if err := database.SaveComics(config.DbFile, normComics); err != nil {
+				log.Printf("Failed to periodically save comics: %v", err)
+			}
 		}
 	}
+
+	if err := database.SaveComics(config.DbFile, normComics); err != nil {
+		log.Fatalf("Failed to save comics: %v", err)
+	}
+
+	duration := time.Since(start)
+
+	fmt.Println(duration.Seconds())
 }

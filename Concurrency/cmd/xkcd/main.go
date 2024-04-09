@@ -4,34 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
 	"strconv"
 	"xkcd-fetcher/pkg/database"
 	"xkcd-fetcher/pkg/words"
 	"xkcd-fetcher/pkg/xkcd"
-
-	"gopkg.in/yaml.v2"
 )
-
-type Config struct {
-	SourceURL     string `yaml:"source_url"`
-	DbFile        string `yaml:"db_file"`
-	StopWordsFile string `yaml:"stopwords_file"`
-}
-
-func LoadConfig(path string) (*Config, error) {
-	var config Config
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, err
-	}
-
-	return &config, nil
-}
 
 func NormalizeComics(stopWordsFile string, comics []xkcd.Comic, normComics database.Comics) (database.Comics, error) {
 	stopWords, err := words.ReadStopWords(stopWordsFile)

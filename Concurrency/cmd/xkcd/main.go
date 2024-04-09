@@ -13,27 +13,6 @@ import (
 	"xkcd-fetcher/pkg/xkcd"
 )
 
-func NormalizeComics(stopWordsFile string, comics []xkcd.Comic, normComics database.Comics) (database.Comics, error) {
-	stopWords, err := words.ReadStopWords(stopWordsFile)
-	if err != nil {
-		fmt.Println("Error reading stop words file:", err)
-		return normComics, err
-	}
-
-	stemmer := words.NewStemmer()
-
-	for _, comic := range comics {
-		fullText := comic.Transcript + " " + comic.Alt
-		result := words.Normalize(stemmer, stopWords, fullText)
-		(normComics)[strconv.Itoa(comic.Num)] = database.NormalizedComic{
-			Url:      comic.Img,
-			Keywords: result,
-		}
-	}
-
-	return normComics, nil
-}
-
 func main() {
 	start := time.Now()
 	configPath := flag.String("c", "config.yaml", "Path to the configuration file")
@@ -63,12 +42,22 @@ func main() {
 	low, high := 2917, 2917 // or 0 to 5000
 	numJobs, err := xkcd.GetLastComicBinary(config.SourceURL, low, high)
 
+	stopWords, err := words.ReadStopWords(config.StopWordsFile)
+	if err != nil {
+		log.Printf("Failed to read stop words file: %v", err)
+	}
+
+	stemmer := words.NewStemmer()
 	jobs := make(chan int, numJobs)
 	results := make(chan []xkcd.Comic, numJobs)
 	for w := 1; w <= config.Parallel; w++ {
 		go func() {
 			for j := range jobs {
 				comics, err := xkcd.FetchComics(config.SourceURL, j-1, j)
+				for i := range comics {
+					fullText := comics[i].Transcript + " " + comics[i].Alt
+					comics[i].NormalizedText = words.Normalize(stemmer, stopWords, fullText)
+				}
 				if err != nil {
 					log.Fatalf("Failed to fetch comics: %v", err)
 				}
@@ -88,15 +77,19 @@ func main() {
 	}
 	close(jobs)
 
-	var a int
-	for a = 1; a <= realCountJobs; a++ {
+	for doneJob := 1; doneJob <= realCountJobs; doneJob++ {
 		comics := <-results
-		normComics, err = NormalizeComics(config.StopWordsFile, comics, normComics)
+		for _, comic := range comics {
+			normComics[strconv.Itoa(comic.Num)] = database.NormalizedComic{
+				Url:      comic.Img,
+				Keywords: comic.NormalizedText,
+			}
+		}
 		if err != nil {
 			log.Fatalf("Failed to normalize comics: %v", err)
 		}
 
-		if a%10 == 0 {
+		if doneJob%10 == 0 {
 			if err := database.SaveComics(config.DbFile, normComics); err != nil {
 				log.Printf("Failed to periodically save comics: %v", err)
 			}

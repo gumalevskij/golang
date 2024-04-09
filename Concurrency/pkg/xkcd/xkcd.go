@@ -7,26 +7,11 @@ import (
 )
 
 type Comic struct {
-	Num        int
-	Img        string
-	Transcript string
-	Alt        string
-}
-
-func GetLastComic(baseURL string) (int, error) {
-	url := fmt.Sprintf("%s/info.0.json", baseURL)
-	resp, err := http.Get(url)
-	if err != nil {
-		return -1, err
-	}
-	defer resp.Body.Close()
-
-	var comic Comic
-	if err := json.NewDecoder(resp.Body).Decode(&comic); err != nil {
-		return -1, err
-	}
-
-	return comic.Num, nil
+	Num            int
+	Img            string
+	Transcript     string
+	Alt            string
+	NormalizedText []string
 }
 
 func GetLastComicBinary(baseURL string, low int, high int) (int, error) {
@@ -60,15 +45,6 @@ func GetLastComicBinary(baseURL string, low int, high int) (int, error) {
 }
 
 func FetchComics(baseURL string, existedComicsNumber int, limit int) ([]Comic, error) {
-	lastComicNumber, err := GetLastComic(baseURL)
-	if err != nil {
-		return nil, err
-	}
-
-	if limit < 0 || limit > lastComicNumber {
-		limit = lastComicNumber
-	}
-
 	var comics = make([]Comic, limit-existedComicsNumber)
 	for i := existedComicsNumber + 1; i <= limit; i++ {
 		url := fmt.Sprintf("%s/%d/info.0.json", baseURL, i)

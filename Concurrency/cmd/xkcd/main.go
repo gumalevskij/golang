@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -29,6 +30,7 @@ func main() {
 		normComics = make(database.Comics)
 	}
 
+	ctx, cancelFunc := context.WithCancel(context.Background())
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, os.Interrupt)
 	go func() {
@@ -36,6 +38,7 @@ func main() {
 		if err := database.SaveComicsCaсhe(config.DbFile, normComics); err != nil {
 			log.Printf("Failed to save comics: %v", err)
 		}
+		cancelFunc()
 		os.Exit(0)
 	}()
 
@@ -51,19 +54,32 @@ func main() {
 	jobs := make(chan int, numJobs)
 	results := make(chan []xkcd.Comic, numJobs)
 	for w := 1; w <= config.Parallel; w++ {
-		go func() {
-			for j := range jobs {
-				comics, err := xkcd.FetchComics(config.SourceURL, j-1, j)
-				for i := range comics {
-					fullText := comics[i].Transcript + " " + comics[i].Alt
-					comics[i].NormalizedText = words.Normalize(stemmer, stopWords, fullText)
+		go func(ctx context.Context) {
+			for {
+				select {
+				case j, ok := <-jobs:
+					if !ok {
+						return
+					}
+					comics, err := xkcd.FetchComics(config.SourceURL, j-1, j)
+					if err != nil {
+						log.Printf("Failed to fetch comics: %v", err)
+						continue
+					}
+					for i := range comics {
+						fullText := comics[i].Transcript + " " + comics[i].Alt
+						comics[i].NormalizedText = words.Normalize(stemmer, stopWords, fullText)
+					}
+					select {
+					case results <- comics:
+					case <-ctx.Done():
+						return
+					}
+				case <-ctx.Done():
+					return
 				}
-				if err != nil {
-					log.Fatalf("Failed to fetch comics: %v", err)
-				}
-				results <- comics
 			}
-		}()
+		}(ctx)
 	}
 
 	realCountJobs := 0

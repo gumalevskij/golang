@@ -33,7 +33,7 @@ func main() {
 	signal.Notify(sigs, os.Interrupt)
 	go func() {
 		<-sigs
-		if err := database.SaveComics(config.DbFile, normComics); err != nil {
+		if err := database.SaveComicsCaсhe(config.DbFile, normComics); err != nil {
 			log.Printf("Failed to save comics: %v", err)
 		}
 		os.Exit(0)
@@ -90,13 +90,13 @@ func main() {
 		}
 
 		if doneJob%10 == 0 {
-			if err := database.SaveComics(config.DbFile, normComics); err != nil {
+			if err := database.SaveComicsCaсhe(config.DbFile, normComics); err != nil {
 				log.Printf("Failed to periodically save comics: %v", err)
 			}
 		}
 	}
 
-	if err := database.SaveComics(config.DbFile, normComics); err != nil {
+	if err := database.SaveComicsCaсhe(config.DbFile, normComics); err != nil {
 		log.Fatalf("Failed to save comics: %v", err)
 	}
 

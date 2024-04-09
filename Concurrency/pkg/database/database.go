@@ -40,3 +40,22 @@ func SaveComics(path string, comics Comics) error {
 
 	return os.WriteFile(path, data, 0644)
 }
+
+func SaveComicsCaсhe(path string, comics Comics) error {
+	data, err := json.MarshalIndent(comics, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	CaсhePath := path + "Caсhe"
+	err = os.WriteFile(CaсhePath, data, 0644)
+	if err != nil {
+		return err
+	}
+	err = os.Rename(CaсhePath, path)
+	if err != nil {
+		return err
+	}
+
+	return err
+}

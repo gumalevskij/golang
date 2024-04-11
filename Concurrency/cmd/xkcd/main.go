@@ -15,7 +15,9 @@ import (
 )
 
 func main() {
-	start := time.Now()
+	defer func(start time.Time) {
+		fmt.Printf("%v\n", time.Since(start))
+	}(time.Now())
 	configPath := flag.String("c", "config.yaml", "Path to the configuration file")
 	flag.Parse()
 
@@ -30,20 +32,18 @@ func main() {
 		normComics = make(database.Comics)
 	}
 
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, os.Interrupt)
-	go func() {
-		<-sigs
-		if err := database.SaveComicsCaсhe(config.DbFile, normComics); err != nil {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer func() {
+		if err := database.SaveComicsCache(config.DbFile, normComics); err != nil {
 			log.Printf("Failed to save comics: %v", err)
 		}
-		cancelFunc()
-		os.Exit(0)
+		stop()
 	}()
 
-	low, high := 2917, 2917 // or 0 to 5000
-	numJobs, err := xkcd.GetLastComicBinary(config.SourceURL, low, high)
+	numJobs, err := xkcd.GetLastComicBinary(config.SourceURL, config.MinNumberComics, config.MaxNumberComics)
+	if err != nil {
+		log.Printf("Failed to find last comic: %v", err)
+	}
 
 	stopWords, err := words.ReadStopWords(config.StopWordsFile)
 	if err != nil {
@@ -52,7 +52,7 @@ func main() {
 
 	stemmer := words.NewStemmer()
 	jobs := make(chan int, numJobs)
-	results := make(chan []xkcd.Comic, numJobs)
+	results := make(chan *xkcd.Comic, numJobs)
 	for w := 1; w <= config.Parallel; w++ {
 		go func(ctx context.Context) {
 			for {
@@ -61,21 +61,18 @@ func main() {
 					if !ok {
 						return
 					}
-					comics, err := xkcd.FetchComics(config.SourceURL, j-1, j)
+					comic, err := xkcd.FetchComics(config.SourceURL, j)
 					if err != nil {
 						log.Printf("Failed to fetch comics: %v", err)
 						continue
 					}
-					for i := range comics {
-						fullText := comics[i].Transcript + " " + comics[i].Alt
-						comics[i].NormalizedText = words.Normalize(stemmer, stopWords, fullText)
+					if comic != nil {
+						fullText := comic.Transcript + " " + comic.Alt
+						comic.NormalizedText = words.Normalize(stemmer, stopWords, fullText)
 					}
-					select {
-					case results <- comics:
-					case <-ctx.Done():
-						return
-					}
+					results <- comic
 				case <-ctx.Done():
+					stop()
 					return
 				}
 			}
@@ -94,29 +91,26 @@ func main() {
 	close(jobs)
 
 	for doneJob := 1; doneJob <= realCountJobs; doneJob++ {
-		comics := <-results
-		for _, comic := range comics {
+		comic := <-results
+		if comic != nil {
 			normComics[strconv.Itoa(comic.Num)] = database.NormalizedComic{
 				Url:      comic.Img,
 				Keywords: comic.NormalizedText,
 			}
 		}
+
 		if err != nil {
 			log.Fatalf("Failed to normalize comics: %v", err)
 		}
 
 		if doneJob%10 == 0 {
-			if err := database.SaveComicsCaсhe(config.DbFile, normComics); err != nil {
+			if err := database.SaveComicsCache(config.DbFile, normComics); err != nil {
 				log.Printf("Failed to periodically save comics: %v", err)
 			}
 		}
 	}
 
-	if err := database.SaveComicsCaсhe(config.DbFile, normComics); err != nil {
+	if err := database.SaveComicsCache(config.DbFile, normComics); err != nil {
 		log.Fatalf("Failed to save comics: %v", err)
 	}
-
-	duration := time.Since(start)
-
-	fmt.Println(duration.Seconds())
 }

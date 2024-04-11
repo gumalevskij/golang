@@ -16,7 +16,7 @@ func LoadComics(path string) (Comics, error) {
 	var comics Comics
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return comics, nil
+		return make(Comics), nil
 	}
 
 	data, err := os.ReadFile(path)
@@ -32,27 +32,18 @@ func LoadComics(path string) (Comics, error) {
 	return comics, nil
 }
 
-func SaveComics(path string, comics Comics) error {
+func SaveComicsCache(path string, comics Comics) error {
 	data, err := json.MarshalIndent(comics, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(path, data, 0644)
-}
-
-func SaveComicsCaсhe(path string, comics Comics) error {
-	data, err := json.MarshalIndent(comics, "", "  ")
+	CachePath := path + "Cache"
+	err = os.WriteFile(CachePath, data, 0644)
 	if err != nil {
 		return err
 	}
-
-	CaсhePath := path + "Caсhe"
-	err = os.WriteFile(CaсhePath, data, 0644)
-	if err != nil {
-		return err
-	}
-	err = os.Rename(CaсhePath, path)
+	err = os.Rename(CachePath, path)
 	if err != nil {
 		return err
 	}

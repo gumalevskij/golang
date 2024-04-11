@@ -7,10 +7,12 @@ import (
 )
 
 type Config struct {
-	SourceURL     string `yaml:"source_url"`
-	DbFile        string `yaml:"db_file"`
-	StopWordsFile string `yaml:"stopwords_file"`
-	Parallel      int    `yaml:"parallel"`
+	SourceURL       string `yaml:"source_url"`
+	DbFile          string `yaml:"db_file"`
+	StopWordsFile   string `yaml:"stopwords_file"`
+	Parallel        int    `yaml:"parallel"`
+	MinNumberComics int    `yaml:"min_number_comics"`
+	MaxNumberComics int    `yaml:"max_number_comics"`
 }
 
 func LoadConfig(path string) (*Config, error) {

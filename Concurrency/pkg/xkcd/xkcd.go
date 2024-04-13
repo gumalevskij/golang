@@ -53,7 +53,7 @@ func FetchComics(baseURL string, comicsNumber int) (*Comic, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, nil
+		return nil, fmt.Errorf("expected status 200 OK got %d", resp.StatusCode)
 	}
 
 	var comic Comic

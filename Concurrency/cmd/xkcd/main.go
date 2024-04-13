@@ -26,9 +26,8 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	var normComics database.Comics
-	normComics, err = database.LoadComics(config.DbFile)
-	if err != nil || len(normComics) == 0 {
+	normComics, err := database.LoadComics(config.DbFile)
+	if err != nil {
 		normComics = make(database.Comics)
 	}
 
@@ -63,7 +62,8 @@ func main() {
 					}
 					comic, err := xkcd.FetchComics(config.SourceURL, j)
 					if err != nil {
-						log.Printf("Failed to fetch comics: %v", err)
+						log.Printf("Failed to fetch comics %d: %v", j, err)
+						results <- nil
 						continue
 					}
 					if comic != nil {
@@ -108,9 +108,5 @@ func main() {
 				log.Printf("Failed to periodically save comics: %v", err)
 			}
 		}
-	}
-
-	if err := database.SaveComicsCache(config.DbFile, normComics); err != nil {
-		log.Fatalf("Failed to save comics: %v", err)
 	}
 }

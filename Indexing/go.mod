@@ -1,4 +1,4 @@
-module xkcd-fetcher
+module xkcd-searcher
 
 go 1.22.1
 

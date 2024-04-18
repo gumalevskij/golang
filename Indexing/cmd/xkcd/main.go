@@ -9,15 +9,65 @@ import (
 	"os/signal"
 	"strconv"
 	"time"
-	"xkcd-fetcher/pkg/database"
-	"xkcd-fetcher/pkg/words"
-	"xkcd-fetcher/pkg/xkcd"
+	"xkcd-searcher/pkg/database"
+	"xkcd-searcher/pkg/words"
+	"xkcd-searcher/pkg/xkcd"
 )
+
+func IndexingSearchComics(normalizedQuery []string, index database.SearchIndex, comicsDB database.Comics) []string {
+	foundIDs := make(map[string]bool)
+	for _, word := range normalizedQuery {
+		if ids, exists := index[word]; exists {
+			for _, id := range ids {
+				foundIDs[id] = true
+			}
+		}
+	}
+
+	var urls []string
+	for id := range foundIDs {
+		if len(urls) >= 10 {
+			break
+		}
+		urls = append(urls, comicsDB[id].Url)
+	}
+	return urls
+}
+
+func InefficientSearchComics(normalizedQuery []string, comicsDB database.Comics) []string {
+	queryWords := make(map[string]bool)
+	for _, word := range normalizedQuery {
+		queryWords[word] = true
+	}
+
+	var urls []string
+	for _, comic := range comicsDB {
+		if len(urls) >= 10 {
+			break
+		}
+		if containsAny(comic.Keywords, queryWords) {
+			urls = append(urls, comic.Url)
+		}
+	}
+
+	return urls
+}
+
+func containsAny(words []string, wordMap map[string]bool) bool {
+	for _, word := range words {
+		if wordMap[word] {
+			return true
+		}
+	}
+	return false
+}
 
 func main() {
 	defer func(start time.Time) {
 		fmt.Printf("%v\n", time.Since(start))
 	}(time.Now())
+	indexSearch := flag.Bool("i", false, "Switch on indexing search")
+	inputQuery := flag.String("s", "", "Input string to query")
 	configPath := flag.String("c", "config.yaml", "Path to the configuration file")
 	flag.Parse()
 
@@ -107,6 +157,22 @@ func main() {
 			if err := database.SaveComicsCache(config.DbFile, normComics); err != nil {
 				log.Printf("Failed to periodically save comics: %v", err)
 			}
+		}
+	}
+
+	if len(*inputQuery) != 0 {
+		NormalizedQuery := words.Normalize(stemmer, stopWords, *inputQuery)
+		index := database.BuildIndex(normComics)
+
+		var urls []string
+		if *indexSearch {
+			urls = IndexingSearchComics(NormalizedQuery, index, normComics)
+		} else {
+			urls = InefficientSearchComics(NormalizedQuery, normComics)
+		}
+
+		for _, url := range urls {
+			fmt.Println(url)
 		}
 	}
 }

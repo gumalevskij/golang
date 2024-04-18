@@ -12,6 +12,27 @@ type NormalizedComic struct {
 
 type Comics map[string]NormalizedComic
 
+type SearchIndex map[string][]string
+
+func BuildIndex(comics Comics) SearchIndex {
+	index := make(SearchIndex)
+	for id, comic := range comics {
+		for _, word := range comic.Keywords {
+			index[word] = append(index[word], id)
+		}
+	}
+	saveIndex(index, "index.json")
+	return index
+}
+
+func saveIndex(index SearchIndex, filename string) error {
+	data, err := json.MarshalIndent(index, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filename, data, 0644)
+}
+
 func LoadComics(path string) (Comics, error) {
 	var comics Comics
 

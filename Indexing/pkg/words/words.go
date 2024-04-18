@@ -40,7 +40,7 @@ func Normalize(stemmer Stemmer, stopWords map[string]bool, text string) []string
 
 		stemmedWord := stemmer.Stem(word)
 		stemmedWord = strings.Trim(stemmedWord, "’")
-		if _, exists := uniqueWords[stemmedWord]; !stopWords[word] && !exists {
+		if _, exists := uniqueWords[stemmedWord]; !stopWords[word] && !exists && len(stemmedWord) != 0 {
 			uniqueWords[stemmedWord] = true
 			result = append(result, stemmedWord)
 		}

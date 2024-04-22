@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sort"
 	"strconv"
 	"time"
 	"xkcd-searcher/pkg/database"
@@ -14,22 +15,34 @@ import (
 	"xkcd-searcher/pkg/xkcd"
 )
 
+type ComicScore struct {
+	ID    string
+	Score int
+	URL   string
+}
+
 func IndexingSearchComics(normalizedQuery []string, index database.SearchIndex, comicsDB database.Comics) []string {
-	foundIDs := make(map[string]bool)
+	matchCounts := make(map[string]int)
 	for _, word := range normalizedQuery {
 		if ids, exists := index[word]; exists {
 			for _, id := range ids {
-				foundIDs[id] = true
+				matchCounts[id]++
 			}
 		}
 	}
 
+	var comicsScores []ComicScore
+	for id, count := range matchCounts {
+		comicsScores = append(comicsScores, ComicScore{ID: id, Score: count, URL: comicsDB[id].Url})
+	}
+
+	sort.Slice(comicsScores, func(i, j int) bool {
+		return comicsScores[i].Score > comicsScores[j].Score
+	})
+
 	var urls []string
-	for id := range foundIDs {
-		if len(urls) >= 10 {
-			break
-		}
-		urls = append(urls, comicsDB[id].Url)
+	for i := 0; i < len(comicsScores) && i < 10; i++ {
+		urls = append(urls, comicsScores[i].URL)
 	}
 	return urls
 }
@@ -40,16 +53,32 @@ func InefficientSearchComics(normalizedQuery []string, comicsDB database.Comics)
 		queryWords[word] = true
 	}
 
-	var urls []string
-	for _, comic := range comicsDB {
-		if len(urls) >= 10 {
-			break
+	matchCounts := make(map[string]int)
+	for id, comic := range comicsDB {
+		count := 0
+		for _, word := range comic.Keywords {
+			if queryWords[word] {
+				count++
+			}
 		}
-		if containsAny(comic.Keywords, queryWords) {
-			urls = append(urls, comic.Url)
+		if count > 0 {
+			matchCounts[id] = count
 		}
 	}
 
+	var comicsScores []ComicScore
+	for id, count := range matchCounts {
+		comicsScores = append(comicsScores, ComicScore{ID: id, Score: count, URL: comicsDB[id].Url})
+	}
+
+	sort.Slice(comicsScores, func(i, j int) bool {
+		return comicsScores[i].Score > comicsScores[j].Score
+	})
+
+	var urls []string
+	for i := 0; i < len(comicsScores) && i < 10; i++ {
+		urls = append(urls, comicsScores[i].URL)
+	}
 	return urls
 }
 
@@ -117,7 +146,7 @@ func main() {
 						continue
 					}
 					if comic != nil {
-						fullText := comic.Transcript + " " + comic.Alt
+						fullText := comic.Transcript + " " + comic.Alt + " " + comic.Title
 						comic.NormalizedText = words.Normalize(stemmer, stopWords, fullText)
 					}
 					results <- comic

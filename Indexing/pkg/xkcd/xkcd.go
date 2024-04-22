@@ -9,6 +9,7 @@ import (
 type Comic struct {
 	Num            int
 	Img            string
+	Title          string
 	Transcript     string
 	Alt            string
 	NormalizedText []string

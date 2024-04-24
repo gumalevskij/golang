@@ -1,0 +1,6 @@
+source_url: "https://xkcd.com"
+db_file: "database.json"
+stopwords_file: "stopwords_English.txt"
+parallel: 128
+min_number_comics: 1
+max_number_comics: 5000
